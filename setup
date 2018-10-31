@@ -1,0 +1,54 @@
+#!/bin/bash
+
+### Delgesh Shahab bash installer v0.1 [https://github.com/Delgesh/bash_installer]
+
+################################################################################
+
+### Set bash environment error management
+
+set -e
+set -u
+
+### Source local functions file
+
+echo
+source_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+. $source_dir/functions
+
+### Check for root user runtime
+
+check_root
+
+### Download and source openspace functions file
+
+while getopts ":b" arguments; do
+    case $arguments in
+        b)	bleeding_edge="-b"
+        echo "Using bleeding_edge bash_functions as per | -b |."
+        echo
+        ;;
+        \?)	echo "Invalid option | -$OPTARG | for function | ${FUNCNAME[0]} |."
+        echo
+        exit
+        ;;
+    esac
+done
+
+OPTIND=1
+
+download_os_functions ${bleeding_edge-}
+source_os_functions
+
+### Define formatting
+
+os-define_formatting
+
+### Define variables
+
+define_vars
+
+################################################################################
+
+### Actually run the installer
+
+os-run_install

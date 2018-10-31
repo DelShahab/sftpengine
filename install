@@ -1,0 +1,89 @@
+#!/bin/bash
+
+### Delgesh Shahab bash installer v0.1 [https://github.com/Delgesh/bash_installer]
+
+################################################################################
+
+### Set bash environment error management
+
+set -e
+set -u
+
+### Source local functions file
+
+echo
+source_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+. $source_dir/functions
+
+### Source openspace functions file
+
+source_os_functions
+
+### Define formatting
+
+os-define_formatting
+
+### Define variables
+
+define_vars
+
+################################################################################
+
+if [[ "${@#--return-check}" = "$@" ]]
+then
+    echo "${r}${b}This script must not be run directly.${x}"
+    echo
+    echo "${b}You should instead run the | ${x}${g}${b}setup${x}${b} | script and it will take care of the installation itself.${x}"
+    echo
+    echo "${b}Exiting...${x}"
+    echo
+    exit 1
+fi
+
+################################################################################
+
+### Check for any already existing installation
+
+skip_backup=y
+os-check_install_version
+
+### All ready for installation
+
+echo "${b}Initiating install...${x}"
+echo
+
+################################################################################
+
+sed -i "/Subsystem/c\Subsystem sftp internal-sftp" "$ssh_config_file"
+
+if ! grep -q "Match Group $sftp_group" "$ssh_config_file"
+then
+    cat <<EOT >> "$ssh_config_file"
+
+    Match Group $sftp_group
+    ChrootDirectory /home/%u
+    ForceCommand internal-sftp
+    PasswordAuthentication yes
+    PermitTunnel no
+    AllowAgentForwarding no
+    AllowTcpForwarding no
+    X11Forwarding no
+EOT
+fi
+
+if ! grep -q $sftp_group /etc/group
+then
+    addgroup "$sftp_group"
+fi
+
+service ssh restart
+
+rsync -aAXx $source_dir/ $install_dir/ --include=add-site-to-user --include=add-user --include=functions --exclude="*"
+
+os-install_dependencies -p bindfs
+
+################################################################################
+
+### Mark installer as completed successfully
+
+touch $source_dir/install_complete
